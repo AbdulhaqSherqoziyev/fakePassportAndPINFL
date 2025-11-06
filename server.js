@@ -6,99 +6,82 @@ const ExcelJS = require('exceljs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Serve frontend
+// Serve static frontend
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Utility: safe integer parse
-function toIntSafe(v, fallback = 0) {
-  const n = parseInt(v, 10);
-  return Number.isFinite(n) && n > 0 ? n : fallback;
-}
-
-// Generate a random integer between min and max inclusive
+// --- Helpers ---
 function randInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// Generate synthetic PINFL-like number (14 digits)
-// NOTE: This is synthetic and doesn't match any real country's official checksum.
 function generatePinfl() {
-  // Ensure first digit not zero
   let s = String(randInt(1, 9));
   for (let i = 0; i < 13; i++) s += String(randInt(0, 9));
   return s;
 }
 
-// Generate passport: prefix from allowed list + 7 digits (you asked BP, GP, CP)
-const passportPrefixes = ['BP', 'GP', 'CP'];
+const prefixes = ['BP', 'GP', 'CP'];
 function generatePassport() {
-  const prefix = passportPrefixes[randInt(0, passportPrefixes.length - 1)];
-  // 7 digit number with leading zeros allowed
+  const prefix = prefixes[randInt(0, prefixes.length - 1)];
   const number = String(randInt(0, 9999999)).padStart(7, '0');
   return { prefix, number, full: `${prefix}${number}` };
 }
 
-// Main endpoint: GET /generate?count=NN
+// --- Main route ---
 app.get('/generate', async (req, res) => {
-  const rawCount = toIntSafe(req.query.count, 0);
-  const MAX = 100000; // safety limit
-  const count = Math.min(rawCount, MAX);
+  const count = Math.min(parseInt(req.query.count) || 0, 100000);
+  if (count <= 0) return res.status(400).send('Invalid count');
 
-  if (count <= 0) {
-    return res.status(400).send('Invalid count. Provide count query param, e.g. /generate?count=100');
-  }
-
-  // Create workbook
   const workbook = new ExcelJS.Workbook();
-  const sheet = workbook.addWorksheet('generated');
+  const sheet = workbook.addWorksheet('Generated');
 
-  // Columns
   sheet.columns = [
-    { header: 'No', key: 'no', width: 6 },
+    { header: '№', key: 'no', width: 6 },
     { header: 'PINFL', key: 'pinfl', width: 20 },
-    { header: 'Passport Prefix', key: 'pprefix', width: 12 },
-    { header: 'Passport Number', key: 'pnum', width: 12 },
-    { header: 'Passport Full', key: 'pfull', width: 20 }
+    { header: 'Passport Prefix', key: 'prefix', width: 15 },
+    { header: 'Passport Number', key: 'number', width: 15 },
+    { header: 'Passport Full', key: 'full', width: 20 }
   ];
 
-  // Generate rows
-  for (let i = 1; i <= count; i++) {
+  // Sets to store used PINFLs and passports
+  const usedPinfls = new Set();
+  const usedPassports = new Set();
+
+  let rowCount = 0;
+  while (rowCount < count) {
     const pinfl = generatePinfl();
     const passport = generatePassport();
-    sheet.addRow({
-      no: i,
-      pinfl,
-      pprefix: passport.prefix,
-      pnum: passport.number,
-      pfull: passport.full
-    });
+
+    const pinflUnique = !usedPinfls.has(pinfl);
+    const passUnique = !usedPassports.has(passport.full);
+
+    if (pinflUnique && passUnique) {
+      usedPinfls.add(pinfl);
+      usedPassports.add(passport.full);
+      sheet.addRow({
+        no: rowCount + 1,
+        pinfl,
+        prefix: passport.prefix,
+        number: passport.number,
+        full: passport.full
+      });
+      rowCount++;
+    }
   }
 
-  // Optional: nice header formatting (bold)
   sheet.getRow(1).font = { bold: true };
 
-  try {
-    // Write workbook to buffer
-    const buffer = await workbook.xlsx.writeBuffer();
+  const buffer = await workbook.xlsx.writeBuffer();
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const filename = `pinfl_passport_${count}_${timestamp}.xlsx`;
 
-    // Set response headers for file download
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `pinfl_passport_${count}_${timestamp}.xlsx`;
-
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.send(Buffer.from(buffer));
-  } catch (err) {
-    console.error('Excel generation error:', err);
-    res.status(500).send('Server error while generating Excel file.');
-  }
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.send(Buffer.from(buffer));
 });
 
-// Fallback: serve index.html for root
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`Server listening on http://localhost:${PORT}`);
-});
+app.listen(PORT, () => console.log(`✅ Server running on http://localhost:${PORT}`));
