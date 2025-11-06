@@ -3,28 +3,159 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PINFL & Passport Generator</title>
+  <title>PINFL & Passport Generator ✨</title>
   <style>
-    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; padding: 40px; background:#f5f7fb; color:#111 }
-    .card { max-width:520px; margin:0 auto; padding:24px; background:#fff; border-radius:12px; box-shadow: 0 6px 20px rgba(10,10,20,0.06) }
-    h1 { margin:0 0 8px; font-size:20px }
-    label { font-weight:600; display:block; margin-top:12px }
-    input[type="number"] { width:100%; padding:10px 12px; margin-top:8px; font-size:16px; border-radius:8px; border:1px solid #e2e8f0 }
-    button { margin-top:14px; padding:10px 14px; font-size:16px; border-radius:8px; cursor:pointer; border:0; background:#2563eb; color:#fff }
-    p.note { font-size:13px; color:#555; margin-top:10px }
+    /* Reset & base */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Poppins", system-ui, sans-serif;
+      background: linear-gradient(135deg, #6366f1, #0ea5e9, #06b6d4);
+      background-size: 300% 300%;
+      animation: gradientShift 12s ease infinite;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #111;
+    }
+
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .card {
+      background: #fff;
+      padding: 32px;
+      border-radius: 24px;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+      max-width: 460px;
+      width: 90%;
+      text-align: center;
+      backdrop-filter: blur(10px);
+      transform: translateY(0);
+      transition: all 0.3s ease;
+    }
+    .card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+    }
+
+    h1 {
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 10px;
+    }
+    p.subtitle {
+      font-size: 0.95rem;
+      color: #64748b;
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      text-align: left;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 8px;
+    }
+    input[type="number"] {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 1rem;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      outline: none;
+      transition: border 0.3s, box-shadow 0.3s;
+    }
+    input[type="number"]:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 4px rgba(59,130,246,0.15);
+    }
+
+    button {
+      margin-top: 22px;
+      padding: 12px 20px;
+      font-size: 1rem;
+      border-radius: 12px;
+      cursor: pointer;
+      border: 0;
+      background: linear-gradient(135deg, #3b82f6, #06b6d4);
+      color: #fff;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      width: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 14px rgba(59,130,246,0.4);
+    }
+    button:active {
+      transform: scale(0.98);
+    }
+
+    /* Spinner */
+    .spinner {
+      border: 3px solid #cbd5e1;
+      border-top: 3px solid #3b82f6;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      animation: spin 0.9s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .note {
+      font-size: 0.8rem;
+      color: #475569;
+      margin-top: 10px;
+    }
+
+    #status {
+      margin-top: 16px;
+      font-size: 0.9rem;
+      min-height: 20px;
+    }
+
+    .success {
+      color: #16a34a;
+      animation: fadeIn 0.6s ease;
+    }
+
+    .error {
+      color: #dc2626;
+      animation: fadeIn 0.6s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>PINFL & Passport Generator</h1>
-    <p>Create synthetic PINFLs + passports and download as Excel (.xlsx)</p>
+    <h1>✨ PINFL & Passport Generator</h1>
+    <p class="subtitle">Create test PINFL & passport data and download Excel instantly.</p>
 
     <label for="count">How many records?</label>
     <input id="count" type="number" min="1" max="100000" value="100" />
 
     <button id="genBtn">Generate & Download Excel</button>
-    <p class="note">Max 100000 records. Use for testing only.</p>
-    <div id="status" style="margin-top:12px;color:#333"></div>
+
+    <p class="note">Max 100,000 rows • For testing purposes only</p>
+    <div id="status"></div>
   </div>
 
   <script src="main.js"></script>

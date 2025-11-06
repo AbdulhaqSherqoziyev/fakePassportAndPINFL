@@ -1,44 +1,46 @@
 // main.js
 document.addEventListener('DOMContentLoaded', () => {
-  const countInput = document.getElementById('count');
   const genBtn = document.getElementById('genBtn');
+  const countInput = document.getElementById('count');
   const status = document.getElementById('status');
 
+  const setStatus = (msg, type = '') => {
+    status.textContent = msg;
+    status.className = type;
+  };
+
   genBtn.addEventListener('click', async () => {
-    status.textContent = '';
+    setStatus('');
     let count = parseInt(countInput.value, 10);
+
     if (!Number.isFinite(count) || count <= 0) {
-      status.textContent = 'Iltimos, musbat butun son kiriting.';
+      setStatus('⚠️ Please enter a valid positive number.', 'error');
       return;
     }
-    const MAX = 100000;
-    if (count > MAX) {
-      status.textContent = `Max ${MAX} ga cheklangan.`;
+    if (count > 100000) {
+      setStatus('🚫 Max limit is 100,000 records.', 'error');
       return;
     }
 
     genBtn.disabled = true;
-    genBtn.textContent = 'Preparing...';
+    const originalText = genBtn.textContent;
+    genBtn.innerHTML = '<span class="spinner"></span> Generating...';
 
     try {
-      const resp = await fetch(`/generate?count=${count}`);
-      if (!resp.ok) {
-        const text = await resp.text();
-        status.textContent = 'Server error: ' + text;
-        genBtn.disabled = false;
-        genBtn.textContent = 'Generate & Download Excel';
-        return;
-      }
-      const blob = await resp.blob();
+      const res = await fetch(`/generate?count=${count}`);
+      if (!res.ok) throw new Error(await res.text());
+
+      const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
-      // derive filename from content-disposition if possible
       let filename = 'pinfl_passport.xlsx';
-      const cd = resp.headers.get('content-disposition');
+
+      const cd = res.headers.get('content-disposition');
       if (cd) {
-        const match = cd.match(/filename="(.+)"/);
+        const match = cd.match(/filename=\"(.+)\"/);
         if (match) filename = match[1];
       }
+
       a.href = url;
       a.download = filename;
       document.body.appendChild(a);
@@ -46,13 +48,13 @@ document.addEventListener('DOMContentLoaded', () => {
       a.remove();
       window.URL.revokeObjectURL(url);
 
-      status.textContent = `Yuklandi: ${filename}`;
+      setStatus(`✅ Downloaded: ${filename}`, 'success');
     } catch (err) {
       console.error(err);
-      status.textContent = 'Xatolik yuz berdi: ' + err.message;
+      setStatus('❌ Error: ' + err.message, 'error');
     } finally {
       genBtn.disabled = false;
-      genBtn.textContent = 'Generate & Download Excel';
+      genBtn.textContent = originalText;
     }
   });
 });
