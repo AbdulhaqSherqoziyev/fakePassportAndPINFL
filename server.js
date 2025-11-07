@@ -27,6 +27,16 @@ function generatePassport() {
   return { prefix, number, full: `${prefix}${number}` };
 }
 
+// --- New Helper: Phone Number ---
+function generatePhoneNumber() {
+  const validStarts = ['10', '30', '40'];
+  const start = validStarts[randInt(0, validStarts.length - 1)];
+  const p1 = String(randInt(100, 999));  // XXX
+  const p2 = String(randInt(10, 99));    // XX
+  const p3 = String(randInt(10, 99));    // XX
+  return `+998 ${start} ${p1} ${p2} ${p3}`;
+}
+
 // --- Main route ---
 app.get('/generate', async (req, res) => {
   const count = Math.min(parseInt(req.query.count) || 0, 100000);
@@ -40,31 +50,35 @@ app.get('/generate', async (req, res) => {
     { header: 'PINFL', key: 'pinfl', width: 20 },
     { header: 'Passport Prefix', key: 'prefix', width: 15 },
     { header: 'Passport Number', key: 'number', width: 15 },
-    { header: 'Passport Full', key: 'full', width: 20 }
+    { header: 'Passport Full', key: 'full', width: 20 },
+    { header: 'Phone Number', key: 'phone', width: 20 }
   ];
 
-  // Sets to store used PINFLs and passports
+  // Sets to store used values
   const usedPinfls = new Set();
   const usedPassports = new Set();
+  const usedPhones = new Set();
 
   let rowCount = 0;
   while (rowCount < count) {
     const pinfl = generatePinfl();
     const passport = generatePassport();
+    const phone = generatePhoneNumber();
 
-    const pinflUnique = !usedPinfls.has(pinfl);
-    const passUnique = !usedPassports.has(passport.full);
-
-    if (pinflUnique && passUnique) {
+    if (!usedPinfls.has(pinfl) && !usedPassports.has(passport.full) && !usedPhones.has(phone)) {
       usedPinfls.add(pinfl);
       usedPassports.add(passport.full);
+      usedPhones.add(phone);
+
       sheet.addRow({
         no: rowCount + 1,
         pinfl,
         prefix: passport.prefix,
         number: passport.number,
-        full: passport.full
+        full: passport.full,
+        phone
       });
+
       rowCount++;
     }
   }
@@ -73,7 +87,7 @@ app.get('/generate', async (req, res) => {
 
   const buffer = await workbook.xlsx.writeBuffer();
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const filename = `pinfl_passport_${count}_${timestamp}.xlsx`;
+  const filename = `pinfl_passport_phone_${count}_${timestamp}.xlsx`;
 
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
